@@ -1,0 +1,9 @@
+name: tweetbot-env
+channels:
+  - defaults
+  - conda-forge
+  - services
+dependencies:
+  - python=3.12
+  - pyautogen
+  - groq
