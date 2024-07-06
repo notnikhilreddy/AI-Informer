@@ -52,7 +52,7 @@ def topic_selector_tool(topics_list: Annotated[list, "The list of topics to pick
 
 def get_news_articles_tool(topic: Annotated[str, "The topic to collect news on"], count: Annotated[int, "The number of news articles to collect from the internet"]) -> str:
     api_key = "bca2837056064cf9b56163348105b235"
-    url = f"https://newsapi.org/v2/everything?q={topic}&pageSize={count}&language={"en"}&apiKey={api_key}"
+    url = f"https://newsapi.org/v2/everything?q={topic}&pageSize={count}&language={'en'}&apiKey={api_key}"
     response = requests.get(url)
     
     if response.status_code == 200:
