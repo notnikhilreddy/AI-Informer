@@ -1,9 +1,9 @@
 name: run main.py
 
 # on: [push]
-on:
-  schedule:
-    - cron: '*/10 * * * *'
+on: workflow_dispatch
+  # schedule:
+  #   - cron: '*/10 * * * *'
 
 jobs:
   build:
