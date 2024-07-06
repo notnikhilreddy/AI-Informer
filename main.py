@@ -78,9 +78,9 @@ def get_trending_tweets_tool(topic: Annotated[str, "The topic to retrieve tweets
 
 def write_tweet_tool(tweet: Annotated[str, "The tweet to post"]) -> str:
     try:
-        # x_client.create_tweet(
-        #     text=tweet,
-        # )
+        x_client.create_tweet(
+            text=tweet,
+        )
         return f'Tweet posted: "{tweet}"'
     except Exception as e:
         error_message = f"Failed to post tweet: {str(e)}"
