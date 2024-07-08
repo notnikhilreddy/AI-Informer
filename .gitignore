@@ -45,5 +45,6 @@ ENV/
 env.bak/
 venv.bak/
 
+.cache/
 environment.yml
 urls.csv
