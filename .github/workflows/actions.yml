@@ -31,7 +31,10 @@ jobs:
           XUSERNAME: ${{ secrets.XUSERNAME }}
           XEMAIL: ${{ secrets.XEMAIL }}
           XPASSWORD: ${{ secrets.XPASSWORD }}
-          AUTOGEN_USE_DOCKER: ${{ secrets.AUTOGEN_USE_DOCKER }}
+          XUSERNAME_TEST: ${{ secrets.XUSERNAME_TEST }}
+          XEMAIL_TEST: ${{ secrets.XEMAIL_TEST }}
+          XPASSWORD_TEST: ${{ secrets.XPASSWORD_TEST }}
+          RELEASE: ${{ secrets.RELEASE }}
         run: python main.py
 
       - name: Commit and Push changes
