@@ -24,8 +24,6 @@ else:
     EMAIL = os.getenv("XEMAIL_TEST")
     PASSWORD = os.getenv("XPASSWORD_TEST")
 
-
-
 # Config dictionary
 llm_config = {
     "cache_seed": 42,
@@ -47,11 +45,6 @@ if 'x_client' not in globals():
     )
     print("Client initialized")
 
-
-import random
-from newspaper import Article
-import pandas as pd
-import os
 
 import random
 from newspaper import Article
@@ -104,6 +97,7 @@ def select_random_article(news_list):
 
 from typing import Annotated
 from gnews import GNews
+from pyshorteners import Shortener
 
 #delete .cache/topics.csv to reset the topics
 if os.path.isfile('.cache/topics.csv'):
@@ -143,6 +137,9 @@ def get_news_article_tool(topic: Annotated[str, "The topic to collect news on"],
         print(f'NEWS LIST: {news_list}')
 
         if news and article:
+            s = Shortener(timeout=5)
+            short_url = s.tinyurl.short(news['url'])
+
             result = (
     """TITLE: {title}
 
@@ -152,7 +149,7 @@ SOURCE: {url}"""
             ).format(
                 title=news['title'],
                 content=article.text.replace('\n\n', '\n'),
-                url=news['url']
+                url=short_url
             )
             return result
         if period_hours >= max_period_hours:
@@ -177,11 +174,16 @@ SOURCE: {url}"""
 
 def write_tweet_tool(tweet: Annotated[str, "The tweet to post"], source: Annotated[str, "The source URL of the news"]) -> str:
     try:
-        # if tweet doesn't contain a URL, append the source URL to the tweet
-        if 'news.google.com' not in tweet:
-            tweet += f"\n{source}"
+        if 'tinyurl.com' in tweet:
+            if len(tweet) > 280:
+                tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
+        else:
+            if len(tweet) <= 279-len(source):
+                tweet += f"\n{source}"
+            else:
+                tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
         
-        if(RELEASE != "DEV"):
+        if RELEASE != "DEV":
             x_client.create_tweet(
                 text=tweet,
             )
@@ -190,7 +192,6 @@ def write_tweet_tool(tweet: Annotated[str, "The tweet to post"], source: Annotat
     except Exception as e:
         error_message = f"Failed to post tweet: {str(e)}"
         return error_message
-
 
 
 topic_selector_agent = AssistantAgent(
@@ -224,7 +225,7 @@ news_collector_agent = AssistantAgent(
 tweet_writer_agent = AssistantAgent(
     "tweet_writer_agent",
     llm_config=llm_config,
-    system_message="You are an autonomous twitter bot that's designed to post the latest news for everyone. You are good at posting twitter posts on the given news. Use the provided tool to post a tweet.",
+    system_message="You are an autonomous twitter bot that's designed to post the latest news for everyone. You are good at posting twitter posts on the given news. Always use simple words. Use the provided tool to post a tweet.",
     max_consecutive_auto_reply=1
 )
 
