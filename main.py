@@ -150,6 +150,7 @@ SOURCE: {url}"""
             return result
         if period_hours >= max_period_hours:
             topic = topic_selection_tool(None)
+            period_hours = 0
         period_hours += 1  # Increase the period by 1 hour and try again
     
 # def get_trending_tweets_tool(topic: Annotated[str, "The topic to retrieve tweets on"], count: Annotated[int, "The number of top tweets to collect"]) -> str:
