@@ -34,12 +34,12 @@ jobs:
           AUTOGEN_USE_DOCKER: ${{ secrets.AUTOGEN_USE_DOCKER }}
         run: python main.py
 
-      name: Commit and Push changes
+      - name: Commit and Push changes
         env:
           GITHUB_TOKEN: ${{ secrets.AI_INFORMER_PUSH_TOKEN }}
         run: |
           git config --global user.name "notnikhilreddy"
           git config --global user.email "nikhilreddy.maligireddy1@gmail.com"
           git add .
-          git commit -m "workflow commit"
+          git commit -m "automated workflow commit"
           git push
