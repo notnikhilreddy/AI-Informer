@@ -45,4 +45,4 @@ jobs:
           git config --global user.email "nikhilreddy.maligireddy1@gmail.com"
           git add .
           git commit -m "automated workflow commit"
-          git push
+          git push --force
