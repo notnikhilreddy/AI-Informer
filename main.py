@@ -137,11 +137,15 @@ def get_news_article_tool(topic: Annotated[str, "The topic to collect news on"],
 
         if news and article:
             result = (
-                f"""TITLE: {news['title']}
+    """TITLE: {title}
 
-CONTENT: {article.text.replace('\n\n', '\n')}
+CONTENT: {content}
 
-SOURCE: {news['url']}"""
+SOURCE: {url}"""
+            ).format(
+                title=news['title'],
+                content=article.text.replace('\n\n', '\n'),
+                url=news['url']
             )
             return result
         if period_hours >= max_period_hours:
