@@ -53,6 +53,11 @@ from newspaper import Article
 import pandas as pd
 import os
 
+import random
+from newspaper import Article
+import pandas as pd
+import os
+
 def select_random_article(news_list):
     if not os.path.isfile('urls.csv'):
         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
@@ -64,9 +69,10 @@ def select_random_article(news_list):
     while True:
         #remove any news from the news_list if it is already in the csv file
         news_list = [news for news in news_list if news['url'] not in df_urls['urls'].values]
+        print(f'FILTERED NEWS LIST: {news_list}')
         if not news_list:
             print("No more news to select")
-            break
+            return None, None
         
         news = random.choice(news_list)
         try:
@@ -134,6 +140,7 @@ def get_news_article_tool(topic: Annotated[str, "The topic to collect news on"],
         google_news.period = f'{period_hours}h'  # Adjust period in hours
         news_list = google_news.get_news(topic)
         news, article = select_random_article(news_list)
+        print(f'NEWS LIST: {news_list}')
 
         if news and article:
             result = (
@@ -183,6 +190,7 @@ def write_tweet_tool(tweet: Annotated[str, "The tweet to post"], source: Annotat
     except Exception as e:
         error_message = f"Failed to post tweet: {str(e)}"
         return error_message
+
 
 
 topic_selector_agent = AssistantAgent(
