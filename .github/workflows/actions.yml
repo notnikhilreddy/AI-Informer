@@ -16,7 +16,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10' # install the python version needed
+          python-version: '3.11' # install the python version needed
           
       - name: install python packages
         run: |
@@ -33,3 +33,16 @@ jobs:
           XPASSWORD: ${{ secrets.XPASSWORD }}
           AUTOGEN_USE_DOCKER: ${{ secrets.AUTOGEN_USE_DOCKER }}
         run: python main.py
+
+      - name: commit files
+        run: |
+          git config --local user.email "nikhilreddy.maligireddy1@gmail.com"
+          git config --local user.name "notnikhilreddy"
+          git add -A
+          git diff-index --quiet HEAD || (git commit -a -m "updated url logs" --allow-empty)
+          
+      - name: push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.AI_INFORMER_PUSH_TOKEN }}
+          branch: main 
