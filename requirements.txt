@@ -5,3 +5,4 @@ gnews
 newspaper3k
 pandas
 lxml[html_clean]
+pyshorteners
