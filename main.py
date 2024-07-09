@@ -4,9 +4,10 @@ from twikit import Client
 import os
 
 keyword = "Artificial Intelligence"
-topic_count = 20
 article_count = 10
+topic_count = 10
 max_period_hours = 3
+news_country = "US"
 
 # Load environment variables
 load_dotenv()
@@ -51,15 +52,18 @@ from newspaper import Article
 import pandas as pd
 import os
 
+urls_file = '.cache/urls.csv'
+
 def select_random_article(news_list):
-    if not os.path.isfile('urls.csv'):
+    if not os.path.isfile(urls_file):
         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
-        df_urls.to_csv('urls.csv')
+        df_urls.to_csv(urls_file)
     else:
-        df_urls = pd.read_csv('urls.csv', index_col='Unnamed: 0')
+        df_urls = pd.read_csv(urls_file, index_col='Unnamed: 0')
     news, article = None, None
     
     while True:
+        print(f'NEWS LIST: {news_list}')
         #remove any news from the news_list if it is already in the csv file
         news_list = [news for news in news_list if news['url'] not in df_urls['urls'].values]
         print(f'FILTERED NEWS LIST: {news_list}')
@@ -80,16 +84,16 @@ def select_random_article(news_list):
             if article.text and len(article.text.strip().split('\n')) > 1:
                 # Append the URL and status to the DataFrame
                 df_urls = pd.concat([pd.DataFrame([[news['url'], 'success']], columns=df_urls.columns), df_urls], ignore_index=True)
-                df_urls.to_csv('urls.csv')
+                df_urls.to_csv(urls_file)
                 break
             else:
                 df_urls = pd.concat([pd.DataFrame([[news['url'], 'empty']], columns=df_urls.columns), df_urls], ignore_index=True)
-                df_urls.to_csv('urls.csv')
+                df_urls.to_csv(urls_file)
                 continue
         except Exception as e:
             # Append the URL and status to the DataFrame
             df_urls = pd.concat([pd.DataFrame([[news['url'], 'error']], columns=df_urls.columns), df_urls], ignore_index=True)
-            df_urls.to_csv('urls.csv')
+            df_urls.to_csv(urls_file)
             print(f"Error selecting article: {str(e)}")
             continue
     return news, article
@@ -99,14 +103,16 @@ from typing import Annotated
 from gnews import GNews
 from pyshorteners import Shortener
 
-#delete .cache/topics.csv to reset the topics
-if os.path.isfile('.cache/topics.csv'):
-    os.remove('.cache/topics.csv')
+topics_file = '.cache/topics.csv'
+
+#reset the topics
+if os.path.isfile(topics_file):
+    os.remove(topics_file)
 
 def topic_selection_tool(topics_list: Annotated[list, "The list of topics"] = None) -> str:
     #set df_topics topic column from the topics_list and set status to pending if it's not already in the df_topics
-    if os.path.isfile('.cache/topics.csv'):
-        df_topics = pd.read_csv('.cache/topics.csv', index_col='Unnamed: 0')
+    if os.path.isfile(topics_file):
+        df_topics = pd.read_csv(topics_file, index_col='Unnamed: 0')
     else:
         df_topics = pd.DataFrame(columns=['topic', 'status'])  # Define the variable with a default value
     if topics_list:
@@ -121,20 +127,20 @@ def topic_selection_tool(topics_list: Annotated[list, "The list of topics"] = No
     topic_selected = random.choice(topics_list)
     df_topics.loc[df_topics['topic'] == topic_selected, 'status'] = 'selected'
     
-    df_topics.to_csv('.cache/topics.csv')
+    df_topics.to_csv(topics_file)
     return topic_selected
 
 def get_news_article_tool(topic: Annotated[str, "The topic to collect news on"], count: Annotated[int, "The number of news articles to collect from the internet"]) -> str:
     google_news = GNews()
     google_news.max_results = count  # number of responses across a keyword
     google_news.language = 'english'  # News in a specific language
+    google_news.country = news_country  # News from a specific country
     period_hours = 1
     
     while True:
         google_news.period = f'{period_hours}h'  # Adjust period in hours
         news_list = google_news.get_news(topic)
         news, article = select_random_article(news_list)
-        print(f'NEWS LIST: {news_list}')
 
         if news and article:
             s = Shortener(timeout=5)
@@ -173,16 +179,16 @@ SOURCE: {url}"""
 #     return "\n\n".join(f'Tweet {i+1}: "{tweet}"' for i, tweet in enumerate(tweets))
 
 def write_tweet_tool(tweet: Annotated[str, "The tweet to post"], source: Annotated[str, "The source URL of the news"]) -> str:
-    try:
-        if 'tinyurl.com' in tweet:
-            if len(tweet) > 280:
-                tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
+    if 'tinyurl.com' in tweet:
+        if len(tweet) > 280:
+            tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
+    else:
+        if len(tweet) <= 279-len(source):
+            tweet += f"\n{source}"
         else:
-            if len(tweet) <= 279-len(source):
-                tweet += f"\n{source}"
-            else:
-                tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
-        
+            tweet = tweet[:276-len(source)] + '...' + f"\n{source}"
+
+    try:
         if RELEASE != "DEV":
             x_client.create_tweet(
                 text=tweet,
@@ -292,4 +298,4 @@ try:
         ]
     )
 except Exception as e:
-    print(f"Error: {str(e)}")
+    print(f"Global Error: {str(e)}")
