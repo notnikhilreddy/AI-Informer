@@ -30,15 +30,15 @@ To install and run the AI Informer bot locally, follow these steps:
 Create a new file named `.env` in the root directory of the project and add the following environment variables:
 
     ```bash
-    GROQ_API_BASE
-    GROQ_MODEL_NAME
-    GROQ_API_KEY
+    GROQ_API_BASE=''
+    GROQ_MODEL_NAME=''
+    GROQ_API_KEY=''
 
-    RELEASE # 'DEV', 'TEST', 'PROD'
+    RELEASE='' # 'DEV', 'TEST', 'PROD'
 
-    XUSERNAME
-    XEMAIL
-    XPASSWORD
+    XUSERNAME=''
+    XEMAIL=''
+    XPASSWORD=''
     ```
 
 4. Start the bot:
