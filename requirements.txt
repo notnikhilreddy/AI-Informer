@@ -1,6 +1,6 @@
 pyautogen
 groq
-twikit
+twikit==1.7.5
 gnews
 newspaper3k
 pandas
