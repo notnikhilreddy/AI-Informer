@@ -35,6 +35,7 @@ jobs:
           XEMAIL_TEST: ${{ secrets.XEMAIL_TEST }}
           XPASSWORD_TEST: ${{ secrets.XPASSWORD_TEST }}
           RELEASE: ${{ secrets.RELEASE }}
+          VERSION: ${{ secrets.VERSION }}
         run: python main.py
 
       - name: Commit and Push changes
