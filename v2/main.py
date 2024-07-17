@@ -27,9 +27,9 @@ else:
     PASSWORD = os.getenv("XPASSWORD_TEST")
 
 #print all the above environment variables
-for key in ['KEYWORD', 'ARTICLE_COUNT', 'KEYWORD_COUNT', 'NEWS_COUNTRY', 'AUTO_GENERATE_KEYWORDS',
-            'GROQ_MODEL_NAME', 'GROQ_API_BASE', 'RELEASE', 'VERSION',]:
-    print(f"{key} = {os.environ[key]}")
+# for key in ['KEYWORD', 'ARTICLE_COUNT', 'KEYWORD_COUNT', 'NEWS_COUNTRY', 'AUTO_GENERATE_KEYWORDS',
+#             'GROQ_MODEL_NAME', 'GROQ_API_BASE', 'RELEASE', 'VERSION',]:
+#     print(f"{key} = {os.environ[key]}")
 
 # create cache directory
 cache = '../.cache'
