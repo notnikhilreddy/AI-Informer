@@ -1,21 +1,21 @@
-keyword = "Artificial Intelligence"
-article_count = 30
-topic_count = 10
-# max_period_hours = 3
-news_country = "United States"
-
-
 from dotenv import load_dotenv
 from autogen import UserProxyAgent, AssistantAgent
 from twikit import Client
 import os
 
+
 # Load environment variables
 load_dotenv()
+KEYWORD = os.getenv("KEYWORD")
+ARTICLE_COUNT = int(os.getenv("ARTICLE_COUNT"))
+KEYWORD_COUNT = int(os.getenv("KEYWORD_COUNT"))
+NEWS_COUNTRY = os.getenv("NEWS_COUNTRY")
 GROQ_MODEL_NAME = os.getenv("GROQ_MODEL_NAME")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_BASE = os.getenv("GROQ_API_BASE")
 RELEASE = os.getenv("RELEASE")
+AUTO_GENERATE_KEYWORDS = os.getenv("AUTO_GENERATE_KEYWORDS")
+VERSION = float(os.getenv("VERSION"))
 
 if(RELEASE == "PROD"):
     USERNAME = os.getenv("XUSERNAME")
@@ -25,6 +25,18 @@ else:
     USERNAME = os.getenv("XUSERNAME_TEST")
     EMAIL = os.getenv("XEMAIL_TEST")
     PASSWORD = os.getenv("XPASSWORD_TEST")
+
+#print all the above environment variables
+for key in ['KEYWORD', 'ARTICLE_COUNT', 'KEYWORD_COUNT', 'NEWS_COUNTRY', 'AUTO_GENERATE_KEYWORDS',
+            'GROQ_MODEL_NAME', 'GROQ_API_BASE', 'RELEASE', 'VERSION',]:
+    print(f"{key} = {os.environ[key]}")
+
+# create cache directory
+cache = '../.cache'
+if not os.path.exists(cache):
+    os.makedirs(cache)
+topics_file = f'{cache}/topics.csv'
+urls_file = f'{cache}/urls.csv'
 
 # Config dictionary
 llm_config = {
@@ -48,91 +60,14 @@ if RELEASE != 'DEV' and 'x_client' not in globals():
     print("Client initialized")
 
 
-
-import random
-import pandas as pd
-import os
-from typing import Annotated
-
-# topics_file = '.cache/topics.csv'
-
-# #reset the topics
-# if os.path.isfile(topics_file):
-#     os.remove(topics_file)
-
-# def topic_selection_tool(topics_list: Annotated[list, "The list of topics"] = None) -> str:
-#     #set df_topics topic column from the topics_list and set status to pending if it's not already in the df_topics
-#     if os.path.isfile(topics_file):
-#         df_topics = pd.read_csv(topics_file, index_col='Unnamed: 0')
-#     else:
-#         df_topics = pd.DataFrame(columns=['topic', 'status'])  # Define the variable with a default value
-#     if topics_list:
-#         for topic in topics_list:
-#             if topic not in df_topics['topic'].values:
-#                 df_topics = pd.concat([df_topics, pd.DataFrame([[topic, 'pending']], columns=df_topics.columns)], ignore_index=True)
-    
-#     topics_list = df_topics[df_topics['status'] == 'pending']['topic'].values.tolist()
-#     if(len(topics_list) == 0):
-#         return "No more topics to select"
-    
-#     topic_selected = random.choice(topics_list)
-#     df_topics.loc[df_topics['topic'] == topic_selected, 'status'] = 'selected'
-    
-#     df_topics.to_csv(topics_file)
-#     return topic_selected
-
-
-
 from gnews import GNews
-from numpy import floor
 from pyshorteners import Shortener
 from newspaper import Article
-
-urls_file = '.cache/urls.csv'
-
-# def select_random_article(news_list):
-#     if not os.path.isfile(urls_file):
-#         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
-#         df_urls.to_csv(urls_file)
-#     else:
-#         df_urls = pd.read_csv(urls_file, index_col='Unnamed: 0')
-    
-#     news, article = None, None
-#     while True:
-#         print(f'NEWS LIST: {news_list}')
-#         #remove any news from the news_list if it is already in the csv file
-#         news_list = [news for news in news_list if news['url'] not in df_urls['urls'].values]
-#         print(f'FILTERED NEWS LIST: {news_list}')
-#         if not news_list:
-#             print("No more news to select")
-#             return None, None
-#         # news = random.choice(news_list)
-#         news = random.choice(news_list)
-#         try:
-#             article = Article(news['url'])
-#             article.download()
-#             article.parse()
-
-#             if article.text and len(article.text.strip().split('\n')) > 1:
-#                 # Append the URL and status to the DataFrame
-#                 df_urls = pd.concat([pd.DataFrame([[news['url'], 'success']], columns=df_urls.columns), df_urls], ignore_index=True)
-#                 df_urls.to_csv(urls_file)
-#                 break
-#             else:
-#                 df_urls = pd.concat([pd.DataFrame([[news['url'], 'empty']], columns=df_urls.columns), df_urls], ignore_index=True)
-#                 df_urls.to_csv(urls_file)
-#                 continue
-#         except Exception as e:
-#             # Append the URL and status to the DataFrame
-#             df_urls = pd.concat([pd.DataFrame([[news['url'], 'error']], columns=df_urls.columns), df_urls], ignore_index=True)
-#             df_urls.to_csv(urls_file)
-#             print(f"Error selecting article: {str(e)}")
-#             continue
-#     return news, article
+from typing import Annotated
+import pandas as pd
 
 
-
-def select_news_article_tool(news_list):
+def read_news_articles_tool(news_list):
     if not os.path.isfile(urls_file):
         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
         df_urls.to_csv(urls_file)
@@ -185,9 +120,10 @@ def select_news_article_tool(news_list):
 
 def get_news_articles_tool(topics_list: Annotated[list, "The list of topics"], count: Annotated[int, "The number of news articles to collect from the internet"]) -> str:
     google_news = GNews()
-    google_news.max_results = int(floor(count/len(topics_list))) # number of responses for one topic
+    # google_news.max_results = int(floor(count/len(topics_list))) # number of responses for one topic
+    google_news.max_results = count # number of responses for one topic
     google_news.language = 'english'  # News in a specific language
-    google_news.country = news_country  # News from a specific country
+    google_news.country = NEWS_COUNTRY  # News from a specific country
     google_news.period = '1h'  # Adjust period in hours
 
     s = Shortener(timeout=5)
@@ -195,13 +131,15 @@ def get_news_articles_tool(topics_list: Annotated[list, "The list of topics"], c
     raw_news_list = []
     for topic in topics_list:
         print(f"FETCHING NEWS ON TOPIC: {topic}")
-        raw_news_list.extend(google_news.get_news(topic))
+        raw_news = google_news.get_news(topic)
+        for news in raw_news:
+            news['keyword'] = topic
+        raw_news_list.extend(raw_news)
         
     if len(raw_news_list) == 0:
         return None
     
-    news_list, article_list = select_news_article_tool(raw_news_list)
-    print(f"NEWS LIST len: {len(news_list)}")
+    news_list, article_list = read_news_articles_tool(raw_news_list)
     print(f"ARTICLE LIST len: {len(article_list)}")
 
     result = ''
@@ -212,15 +150,17 @@ def get_news_articles_tool(topics_list: Annotated[list, "The list of topics"], c
         article_text_list = [article.text for article in article_list]
 
         for i in range(len(news_list)):
-            # do this until the result length is less than 31000
+            # do this until the result length is less than 30000
             if len(result) > 30000:
                 break
-            result += ("""NEWS {n} TITLE: {title}
+            result += ("""NEWS {n} TOPIC: {keyword}
+NEWS {n} TITLE: {title}
 NEWS {n} CONTENT: {content}
 NEWS {n} SOURCE: {url}
 
 """
         ).format(
+            keyword = news_list[i]['keyword'],
             n = i+1,
             title=news_list[i]['title'],
             content=article_text_list[i].replace('\n\n', '\n')[:1000],
@@ -230,10 +170,10 @@ NEWS {n} SOURCE: {url}
     return result[:4500]
 
 
-
 import re
 from datetime import datetime
 import pytz
+
 
 def merge_tweets(tweet_list: Annotated[list, "The list of tweets to merge"]) -> None:
     merged_tweets = []
@@ -278,7 +218,6 @@ def get_intro_tweet() -> str:
 
     return f"""These are the AI news within the last 1 hour:
 {formatted_datetime}"""
-
 
 
 import time
@@ -333,19 +272,11 @@ Length: {length}
     return posts
 
 
-
-# topic_selector_agent = AssistantAgent(
-#     "topic_selector_agent",
-#     llm_config=llm_config,
-#     system_message=f"You are good at writing a list of closely related topics to the given topic(including the given topic) and then choose any one out of them. Use the provided tools for both topic selection and to collect new articles.",
-#     max_consecutive_auto_reply=1
-# )
-
 news_collector_agent = AssistantAgent(
     "news_collector_agent",
     llm_config=llm_config,
     system_message=f"""You are good at collecting recent news articles about a given keyword on the internet. 
-    You should generate a list of {topic_count} topics closely related to the given keyword. 
+    You should generate a list of {KEYWORD_COUNT} topics closely related to the given keyword. 
     Use the provided tool to collect news about the generated list of topics.""",
     max_consecutive_auto_reply=1
 )
@@ -353,9 +284,9 @@ news_collector_agent = AssistantAgent(
 tweet_writer_agent = AssistantAgent(
     "tweet_writer_agent",
     llm_config=llm_config,
-    system_message=f"""You are an autonomous twitter bot that's created to educate the people about {keyword}. 
+    system_message=f"""You are an autonomous twitter bot that's created to educate the people about {KEYWORD}. 
     You are good at posting a series of twitter posts on the given list of news by summarizing each news as one short tweet. 
-    You MUST only post news that is about the topic '{keyword}' and ignore other news(double check this). 
+    You MUST only strictly post news that is about the topic {KEYWORD} or the respective news topic given and ignore other news(double check this). 
     Always use simple words. 
     Use the provided tool to post all the tweets as a thread(list of tweets).""",
     max_consecutive_auto_reply=1
@@ -371,42 +302,59 @@ user_proxy_agent = UserProxyAgent(
 )
 
 
-
 # # Register the tool signature with the assistant agent.
-# topic_selector_agent.register_for_llm(name="topic_selection_tool", description="Generate a list of topics related to the input topic and return a random topic.")(topic_selection_tool)
 news_collector_agent.register_for_llm(name="get_news_articles_tool", description="Collect news articles about a list of topics on the internet.")(get_news_articles_tool)
 tweet_writer_agent.register_for_llm(name="write_tweet_tool", description="Write a twitter thread.")(write_tweet_tool)
 
 # Register the tool function with the user proxy agent.
-# user_proxy_agent.register_for_execution(name="topic_selection_tool")(topic_selection_tool)
 user_proxy_agent.register_for_execution(name="get_news_articles_tool")(get_news_articles_tool)
 user_proxy_agent.register_for_execution(name="write_tweet_tool")(write_tweet_tool)
 
 
+import random
+
+
 try:
-    user_proxy_agent.initiate_chats([
-            # {
-            #     "recipient": topic_selector_agent,
-            #     "message": f"Generate a list of {topic_count} topics related to the topic '{keyword}' and return a random topic from the list.",
-            #     "clear_history": True,
-            #     "silent": False,
-            #     "summary_method": "last_msg"
-            # },
+    if AUTO_GENERATE_KEYWORDS=='True':
+        user_proxy_agent.initiate_chats([
             {
                 "recipient": news_collector_agent,
-                "message": f"Collect {article_count} news articles about the topic '{keyword}' from the internet.",
+                "message": f"Collect {KEYWORD_COUNT} news articles about the topic '{KEYWORD}' from the internet.",
                 "clear_history": True,
                 "silent": False,
                 "summary_method": "last_msg"
             },
             {
                 "recipient": tweet_writer_agent,
-                "message": "Write and post a twitter thread about the given list of news articles: ",
+                "message": "Write and post a twitter thread about the given list of news articles:\n",
                 "clear_history": True,
                 "silent": False,
                 "summary_method": "last_msg"
             }
-        ]
-    )
+        ])
+    else:
+        topics_list = pd.read_csv('../topics.csv')
+        topics_list = topics_list.values.tolist()
+        topics_list = [item for sublist in topics_list for item in sublist]
+        topics_list = [x for x in topics_list if str(x) != 'nan']
+        random.shuffle(topics_list)
+        topics_list = topics_list[:20] # TESTING
+
+        if len(topics_list)==0:
+            raise Exception("No topics found")
+
+        news_articles = get_news_articles_tool(topics_list=topics_list, count=int(ARTICLE_COUNT))
+        if news_articles:
+            user_proxy_agent.initiate_chats([
+                {
+                    "recipient": tweet_writer_agent,
+                    "message": f"Write and post a twitter thread about the given list of news articles:\n{news_articles}",
+                    "clear_history": True,
+                    "silent": False,
+                    "summary_method": "last_msg"
+                }
+            ])
+        else:
+            raise Exception("No news articles found")
 except Exception as e:
     print(f"Global Error: {str(e)}")
