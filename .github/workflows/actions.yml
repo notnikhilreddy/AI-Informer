@@ -36,6 +36,11 @@ jobs:
           XPASSWORD_TEST: ${{ secrets.XPASSWORD_TEST }}
           RELEASE: ${{ secrets.RELEASE }}
           VERSION: ${{ secrets.VERSION }}
+          KEYWORD: ${{ secrets.KEYWORD }}
+          ARTICLE_COUNT: ${{ secrets.ARTICLE_COUNT }}
+          KEYWORD_COUNT: ${{ secrets.KEYWORD_COUNT }}
+          NEWS_COUNTRY: ${{ secrets.NEWS_COUNTRY }}
+          AUTO_GENERATE_KEYWORDS: ${{ secrets.AUTO_GENERATE_KEYWORDS }}
         run: python main.py
 
       - name: Commit and Push changes
