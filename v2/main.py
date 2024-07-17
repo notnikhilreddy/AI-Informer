@@ -7,15 +7,15 @@ import os
 # Load environment variables
 load_dotenv()
 KEYWORD = os.getenv("KEYWORD")
-ARTICLE_COUNT = int(os.getenv("ARTICLE_COUNT"))
-KEYWORD_COUNT = int(os.getenv("KEYWORD_COUNT"))
+ARTICLE_COUNT = os.getenv("ARTICLE_COUNT")
+KEYWORD_COUNT = os.getenv("KEYWORD_COUNT")
 NEWS_COUNTRY = os.getenv("NEWS_COUNTRY")
 GROQ_MODEL_NAME = os.getenv("GROQ_MODEL_NAME")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_BASE = os.getenv("GROQ_API_BASE")
 RELEASE = os.getenv("RELEASE")
 AUTO_GENERATE_KEYWORDS = os.getenv("AUTO_GENERATE_KEYWORDS")
-VERSION = float(os.getenv("VERSION"))
+VERSION = os.getenv("VERSION")
 
 if(RELEASE == "PROD"):
     USERNAME = os.getenv("XUSERNAME")
