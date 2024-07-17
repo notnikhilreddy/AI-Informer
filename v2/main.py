@@ -225,7 +225,7 @@ import time
 
 def write_tweet_tool(tweet_list: Annotated[list, "The list of tweets to post"], source_list: Annotated[list, "The list of 'https://tinyurl.com/' source URL for each tweet"]) -> str:
     tweet_list = add_source_urls(tweet_list, source_list)
-    tweet_list = merge_tweets(tweet_list)
+    # tweet_list = merge_tweets(tweet_list)
     # tweet_list = [get_intro_tweet()] + tweet_list
 
     posts = ''
