@@ -135,6 +135,7 @@ def get_news_articles_tool(keyword_list: Annotated[list, "The list of keywords"]
     
     urls, keywords = [], []
     for keyword in keyword_list:
+        keyword = keyword.replace(" ", "%20")
         print(f"FETCHING NEWS ON TOPIC: {keyword}")
         # raw_news = google_news.get_news(topic)
         source.build(keyword = keyword, topic = 'TECHNOLOGY', top_news=False)
@@ -348,7 +349,7 @@ try:
         topics_list = [item for sublist in topics_list for item in sublist]
         topics_list = [x for x in topics_list if str(x) != 'nan']
         random.shuffle(topics_list)
-        topics_list = topics_list[:5] # TESTING
+        # topics_list = topics_list[:5] # TESTING
 
         if len(topics_list)==0:
             raise Exception("No topics found")
