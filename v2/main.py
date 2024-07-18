@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from autogen import UserProxyAgent, AssistantAgent
+from newspaper.google_news import GoogleNewsSource
 from twikit import Client
 import os
 
@@ -48,6 +49,13 @@ llm_config = {
     }],
 }
 
+source = GoogleNewsSource(
+    period="1h",
+    max_results = int(ARTICLE_COUNT), # number of responses for one topic
+    language = 'en',  # News in a specific language
+    country = NEWS_COUNTRY,  # News from a specific country
+)
+
 # # Initialize client
 if RELEASE != 'DEV' and 'x_client' not in globals():
     x_client = Client('en-US')
@@ -60,96 +68,97 @@ if RELEASE != 'DEV' and 'x_client' not in globals():
     print("Client initialized")
 
 
-from gnews import GNews
 from pyshorteners import Shortener
 from newspaper import Article
 from typing import Annotated
 import pandas as pd
 
 
-def read_news_articles_tool(news_list):
+def deduplicate_news_list(urls, keywords):
+    # deduplicate the urls and keywords based on urls
+    urls_dict = {}
+    for i in range(len(urls)):
+        if urls[i] not in urls_dict:
+            urls_dict[urls[i]] = keywords[i]
+        else:
+            urls_dict[urls[i]] = urls_dict[urls[i]] + ', ' + keywords[i]
+
+    urls = list(urls_dict.keys())
+    keywords = list(urls_dict.values())
+    return urls, keywords
+
+def read_news_articles_tool(urls, keywords):
     if not os.path.isfile(urls_file):
         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
         df_urls.to_csv(urls_file)
     else:
         df_urls = pd.read_csv(urls_file, index_col='Unnamed: 0')
     
-    news_list = [news for news in news_list if news['url'] not in df_urls['urls'].values]
+    urls = [url for url in urls if url not in df_urls['urls'].values]
     
-    #deduplicate the news_list based on urls
-    def deduplicate_news_list(news_list):
-        seen_urls = set()
-        unique_news_list = []
-        for news_item in news_list:
-            url = news_item.get('url')
-            if url not in seen_urls:
-                seen_urls.add(url)
-                unique_news_list.append(news_item)
-        return unique_news_list
-    news_list = deduplicate_news_list(news_list)
+    #deduplicate the urls and keywords based on urls
+    urls, keywords = deduplicate_news_list(urls, keywords)
 
-    if len(news_list) == 0:
-        return [], []
+    if len(urls) == 0:
+        return []
 
     article_list = []
-    final_news_list = []
-    for news in news_list:
+    for i in range(len(urls)):
         try:
-            article = Article(news['url'])
+            
+            article = Article(urls[i])
             article.download()
             article.parse()
 
-            if article.text and len(article.text.strip().split('\n')) > 1:
+            if article.text: # and len(article.text.strip().split('\n')) > 1:
                 # Append the URL and status to the DataFrame
-                df_urls = pd.concat([pd.DataFrame([[news['url'], 'success']], columns=df_urls.columns), df_urls], ignore_index=True)
+                df_urls = pd.concat([pd.DataFrame([[urls[i], 'success']], columns=df_urls.columns), df_urls], ignore_index=True)
                 df_urls.to_csv(urls_file)
-                final_news_list.append(news)
+                article.keyword = keywords[i]
                 article_list.append(article)
                 continue
             else:
-                df_urls = pd.concat([pd.DataFrame([[news['url'], 'empty']], columns=df_urls.columns), df_urls], ignore_index=True)
+                df_urls = pd.concat([pd.DataFrame([[urls[i], 'empty']], columns=df_urls.columns), df_urls], ignore_index=True)
                 df_urls.to_csv(urls_file)
                 continue
         except Exception as e:
-            df_urls = pd.concat([pd.DataFrame([[news['url'], 'error']], columns=df_urls.columns), df_urls], ignore_index=True)
+            df_urls = pd.concat([pd.DataFrame([[urls[i], 'error']], columns=df_urls.columns), df_urls], ignore_index=True)
             df_urls.to_csv(urls_file)
-            print(f"Error selecting article: {str(e)}")
+            print(f"Error reading article: {str(e)}")
             continue
 
-    return final_news_list, article_list
+    return article_list
 
-def get_news_articles_tool(topics_list: Annotated[list, "The list of topics"], count: Annotated[int, "The number of news articles to collect from the internet"]) -> str:
-    google_news = GNews()
-    # google_news.max_results = int(floor(count/len(topics_list))) # number of responses for one topic
-    google_news.max_results = count # number of responses for one topic
-    google_news.language = 'english'  # News in a specific language
-    google_news.country = NEWS_COUNTRY  # News from a specific country
-    google_news.period = '1h'  # Adjust period in hours
 
+def get_news_articles_tool(keyword_list: Annotated[list, "The list of keywords"], count: Annotated[int, "The number of news articles to collect from the internet"]) -> str:
     s = Shortener(timeout=5)
     
-    raw_news_list = []
-    for topic in topics_list:
-        print(f"FETCHING NEWS ON TOPIC: {topic}")
-        raw_news = google_news.get_news(topic)
-        for news in raw_news:
-            news['keyword'] = topic
-        raw_news_list.extend(raw_news)
+    urls, keywords = [], []
+    for keyword in keyword_list:
+        print(f"FETCHING NEWS ON TOPIC: {keyword}")
+        # raw_news = google_news.get_news(topic)
+        source.build(keyword = keyword, topic = 'TECHNOLOGY', top_news=False)
+        urls = urls + source.article_urls()
+        keywords = keywords + [keyword] * len(source.article_urls())
+    print(f"URLS: {urls}")
         
-    if len(raw_news_list) == 0:
+    if len(urls) == 0:
         return None
     
-    news_list, article_list = read_news_articles_tool(raw_news_list)
-    print(f"ARTICLE LIST len: {len(article_list)}")
+    article_list = read_news_articles_tool(urls, keywords)
+    print(f"Articles read: {len(article_list)}")
 
     result = ''
-    if len(news_list) > 0 and len(article_list) > 0:
-        # get the news['url'] for each news
-        news_url_list = [news['url'] for news in news_list]
-        short_urls = [s.tinyurl.short(url) for url in news_url_list]
-        article_text_list = [article.text for article in article_list]
+    if len(article_list) > 0:
+        # Get the short urls
+        for article in article_list:
+            try:
+                article.short_url = s.tinyurl.short(article.url)
+            except Exception as e:
+                print(f"Error shortening url: {str(e)}")
+                article.short_url = article.url
 
-        for i in range(len(news_list)):
+        for i in range(len(article_list)):
             # do this until the result length is less than 30000
             if len(result) > 30000:
                 break
@@ -160,11 +169,11 @@ NEWS {n} SOURCE: {url}
 
 """
         ).format(
-            keyword = news_list[i]['keyword'],
+            keyword = article_list[i].keyword,
             n = i+1,
-            title=news_list[i]['title'],
-            content=article_text_list[i].replace('\n\n', '\n')[:1000],
-            url=short_urls[i]
+            title=article_list[i].title,
+            content=article_list[i].text.replace('\n\n', '\n')[:1000],
+            url=article_list[i].short_url
         )
 
     return result[:4500]
@@ -339,12 +348,12 @@ try:
         topics_list = [item for sublist in topics_list for item in sublist]
         topics_list = [x for x in topics_list if str(x) != 'nan']
         random.shuffle(topics_list)
-        topics_list = topics_list[:20] # TESTING
+        topics_list = topics_list[:5] # TESTING
 
         if len(topics_list)==0:
             raise Exception("No topics found")
 
-        news_articles = get_news_articles_tool(topics_list=topics_list, count=int(ARTICLE_COUNT))
+        news_articles = get_news_articles_tool(keyword_list=topics_list, count=int(ARTICLE_COUNT))
         if news_articles:
             user_proxy_agent.initiate_chats([
                 {
@@ -359,3 +368,7 @@ try:
             raise Exception("No news articles found")
 except Exception as e:
     print(f"Global Error: {str(e)}")
+    #print trackback
+    import traceback
+    traceback.print_exc()
+    raise e
