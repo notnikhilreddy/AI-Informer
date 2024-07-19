@@ -234,13 +234,14 @@ def add_source_urls(tweet_list: Annotated[list, "The list of tweets to post"], s
     if len(tweet_list) == len(source_list):
         del_index = []
         for i in range(len(source_list)):
-            if not re.search(r'https://tinyurl\.com/[a-zA-Z0-9]{8}', tweet_list[i]): # if the tweet does not contain a source
-                if re.search(r'https://tinyurl\.com/[a-zA-Z0-9]{8}', source_list[i]): # if we have a source seperately
-                    tweet_list[i] = tweet_list[i][:278-len(source_list[i])]
-                    tweet_list[i] += f"\n{source_list[i]}"
-    # uncomment below five lines to don't post a news if it doesn't have a source
-                else:
-                    del_index.append(i)
+            if tweet_list[i] and source_list[i]:
+                if not re.search(r'https://tinyurl\.com/[a-zA-Z0-9]{8}', tweet_list[i]): # if the tweet does not contain a source
+                    if re.search(r'https://tinyurl\.com/[a-zA-Z0-9]{8}', source_list[i]): # if we have a source seperately
+                        tweet_list[i] = tweet_list[i][:278-len(source_list[i])]
+                        tweet_list[i] += f"\n{source_list[i]}"
+        # uncomment below five lines to don't post a news if it doesn't have a source
+                    else:
+                        del_index.append(i)
         for i in sorted(del_index, reverse=True):
             del tweet_list[i]
             del source_list[i]
