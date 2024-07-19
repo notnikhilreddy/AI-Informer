@@ -33,7 +33,7 @@ else:
 #     print(f"{key} = {os.environ[key]}")
 
 # create cache directory
-cache = '../.cache'
+cache = '.cache'
 if not os.path.exists(cache):
     os.makedirs(cache)
 topics_file = f'{cache}/topics.csv'
