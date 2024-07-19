@@ -36,8 +36,8 @@ else:
 cache = '../.cache'
 if not os.path.exists(cache):
     os.makedirs(cache)
-topics_file = f'../topics.csv'
-urls_file = f'../urls.csv'
+topics_file = f'{cache}/topics.csv'
+urls_file = f'{cache}/urls.csv'
 
 # Config dictionary
 llm_config = {
