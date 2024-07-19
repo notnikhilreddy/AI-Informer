@@ -119,8 +119,10 @@ def read_news_articles_tool(urls, keywords):
     if not os.path.isfile(urls_file):
         df_urls = pd.DataFrame(columns=['urls', 'status'])  # Define the variable with a default value
         df_urls.to_csv(urls_file)
+        print("File created")
     else:
         df_urls = pd.read_csv(urls_file, index_col='Unnamed: 0')
+        print("File loaded")
     
     urls = [url for url in urls if url not in df_urls['urls'].values]
     
