@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from autogen import UserProxyAgent, AssistantAgent
-from newspaper.google_news import GoogleNewsSource
+from gnews import GNews
 from twikit import Client
 import os
 
@@ -49,12 +49,11 @@ llm_config = {
     }],
 }
 
-source = GoogleNewsSource(
-    period="1h",
-    max_results = int(ARTICLE_COUNT), # number of responses for one topic
-    language = 'en',  # News in a specific language
-    country = NEWS_COUNTRY,  # News from a specific country
-)
+google_news = GNews()
+google_news.period = '1h'  # News from last 7 days
+google_news.max_results = int(ARTICLE_COUNT)  # number of responses across a keyword
+google_news.country = 'United States'  # News from a specific country 
+google_news.language = 'english'  # News in a specific language
 
 # # Initialize client
 if RELEASE != 'DEV' and 'x_client' not in globals():
@@ -68,10 +67,32 @@ if RELEASE != 'DEV' and 'x_client' not in globals():
     print("Client initialized")
 
 
-from pyshorteners import Shortener
-from newspaper import Article
-from typing import Annotated
-import pandas as pd
+"""Decode encoded Google News entry URLs."""
+import base64
+import functools
+import re
+
+
+_ENCODED_URL_PREFIX = "https://news.google.com/rss/articles/"
+_ENCODED_URL_RE = re.compile(fr"^{re.escape(_ENCODED_URL_PREFIX)}(?P<encoded_url>[^?]+)")
+_DECODED_URL_RE = re.compile(rb'^\x08\x13".+?(?P<primary_url>http[^\xd2]+)\xd2\x01')
+
+@functools.lru_cache(2048)
+def _decode_google_news_url(url: str) -> str:
+    match = _ENCODED_URL_RE.match(url)
+    encoded_text = match.groupdict()["encoded_url"]  # type: ignore
+    encoded_text += "==="  # Fix incorrect padding. Ref: https://stackoverflow.com/a/49459036/
+    decoded_text = base64.urlsafe_b64decode(encoded_text)
+
+    match = _DECODED_URL_RE.match(decoded_text)
+    primary_url = match.groupdict()["primary_url"]  # type: ignore
+    primary_url = primary_url.decode()
+    return primary_url
+
+
+def decode_google_news_url(url: str) -> str:  # Not cached because not all Google News URLs are encoded.
+    """Return Google News entry URLs after decoding their encoding as applicable."""
+    return _decode_google_news_url(url) if url.startswith(_ENCODED_URL_PREFIX) else url
 
 
 def deduplicate_news_list(urls, keywords):
@@ -86,6 +107,13 @@ def deduplicate_news_list(urls, keywords):
     urls = list(urls_dict.keys())
     keywords = list(urls_dict.values())
     return urls, keywords
+
+
+from pyshorteners import Shortener
+from newspaper import Article
+from typing import Annotated
+import pandas as pd
+
 
 def read_news_articles_tool(urls, keywords):
     if not os.path.isfile(urls_file):
@@ -135,12 +163,14 @@ def get_news_articles_tool(keyword_list: Annotated[list, "The list of keywords"]
     
     urls, keywords = [], []
     for keyword in keyword_list:
-        keyword = keyword.replace(" ", "%20")
+        # keyword = keyword.replace(" ", "%20")
         print(f"FETCHING NEWS ON TOPIC: {keyword}")
-        # raw_news = google_news.get_news(topic)
-        source.build(keyword = keyword, topic = 'TECHNOLOGY', top_news=False)
-        urls = urls + source.article_urls()
-        keywords = keywords + [keyword] * len(source.article_urls())
+        sources = google_news.get_news(keyword)
+        # source.build(keyword = keyword, topic = 'TECHNOLOGY', top_news=False)
+        for source in sources:
+            decoded_url = decode_google_news_url(source['url'])
+            urls = urls + [decoded_url]
+        keywords = keywords + [keyword] * len(sources)
     print(f"URLS: {urls}")
         
     if len(urls) == 0:
@@ -209,11 +239,11 @@ def add_source_urls(tweet_list: Annotated[list, "The list of tweets to post"], s
                     tweet_list[i] = tweet_list[i][:278-len(source_list[i])]
                     tweet_list[i] += f"\n{source_list[i]}"
     # uncomment below five lines to don't post a news if it doesn't have a source
-        #         else:
-        #             del_index.append(i)
-        # for i in sorted(del_index, reverse=True):
-        #     del tweet_list[i]
-        #     del source_list[i]
+                else:
+                    del_index.append(i)
+        for i in sorted(del_index, reverse=True):
+            del tweet_list[i]
+            del source_list[i]
         
     return tweet_list
 

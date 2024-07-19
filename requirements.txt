@@ -2,7 +2,7 @@ pyautogen==0.2.28
 groq==0.9.0
 twikit==1.7.5
 gnews==0.3.7
-newspaper4k==0.9.3.1
+newspaper3k==0.2.8
 pandas
 lxml[html_clean]
 pyshorteners==1.0.1
