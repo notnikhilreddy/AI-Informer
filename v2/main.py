@@ -213,7 +213,7 @@ NEWS {n} SOURCE: {url}
 
 # read and print urls_file
 if os.path.isfile(urls_file):
-    print(pd.read_csv(urls_file, index_col='Unnamed: 0'))
+    print("File found at: ", urls_file)
 else:
     print("File not found")
 
