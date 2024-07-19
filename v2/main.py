@@ -211,6 +211,11 @@ NEWS {n} SOURCE: {url}
 
     return result[:4500]
 
+# read and print urls_file
+if os.path.isfile(urls_file):
+    print(pd.read_csv(urls_file, index_col='Unnamed: 0'))
+else:
+    print("File not found")
 
 import re
 from datetime import datetime

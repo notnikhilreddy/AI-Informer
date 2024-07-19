@@ -50,5 +50,6 @@ jobs:
           git config --global user.name "notnikhilreddy"
           git config --global user.email "nikhilreddy.maligireddy1@gmail.com"
           git add .
+          git status
           git commit -m "automated workflow commit"
           git push --force
