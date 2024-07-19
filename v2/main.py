@@ -39,6 +39,10 @@ if not os.path.exists(cache):
 topics_file = f'{cache}/topics.csv'
 urls_file = f'{cache}/urls.csv'
 
+#print current path and all the files
+print("Current path: ", os.getcwd())
+print("Files in the directory: ", os.listdir())
+
 # Config dictionary
 llm_config = {
     "cache_seed": 42,
